@@ -11,7 +11,6 @@ class MyPlantsPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            /// HEADER
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(
@@ -64,7 +63,6 @@ class MyPlantsPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            /// NEW HERE CARD
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
