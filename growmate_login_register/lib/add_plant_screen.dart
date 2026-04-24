@@ -55,31 +55,96 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
 
   // Fungsi untuk menampilkan date picker
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF4CAF50),
-              onPrimary: Colors.white,
-              surface: Color(0xFF4CAF50),
+  // Simpan tanggal sementara
+  DateTime temporaryDate = DateTime.now();
+  
+  // Tampilkan date picker di modal bottom sheet
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext context) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header dengan tombol
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.black12, width: 1),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ),
+                  const Text(
+                    'Select Planting Date',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF234536),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        plantingDateController.text = 
+                            "${temporaryDate.day}/${temporaryDate.month}/${temporaryDate.year}";
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Color(0xFF4CAF50),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    
-    if (picked != null) {
-      setState(() {
-        plantingDateController.text = "${picked.day}/${picked.month}/${picked.year}";
-      });
-    }
-  }
+            // Calendar
+            SizedBox(
+              height: 350,
+              child: StatefulBuilder(
+                builder: (context, setStateSheet) {
+                  return CalendarDatePicker(
+                    initialDate: temporaryDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                    onDateChanged: (date) {
+                      setStateSheet(() {
+                        temporaryDate = date;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+  
+  
+
 
   // Fungsi untuk menyimpan data plant
   void _savePlant() {
