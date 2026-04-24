@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // Jembatan ke Laravel
+import 'dart:convert'; // Untuk mengolah data JSON
 import 'main_navigation.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -9,8 +11,8 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  // Variabel penentu: true = Sign In (kiri), false = Sign Up (kanan)
   bool isSignIn = true;
+  bool isLoading = false; // Untuk indikator loading
 
   // Controllers untuk mengambil input
   final TextEditingController nameController = TextEditingController();
@@ -25,141 +27,99 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  // Fungsi untuk validasi login
-  void _handleSignIn() {
+  // --- FUNGSI LOGIN (API) ---
+  Future<void> _handleSignIn() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _showError("Please fill all fields");
       return;
     }
 
-    if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid email"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+    setState(() => isLoading = true);
 
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Password must be at least 6 characters"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
+    try {
+      // Gunakan 10.0.2.2 untuk Emulator Android
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/api/login'),
+        headers: {'Accept': 'application/json'},
+        body: {'email': email, 'password': password},
       );
-      return;
-    }
 
-    // Jika berhasil login
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Login successful! Welcome back! 🌱"),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-    
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _showSuccess("Welcome back, ${data['user']['name']}! 🌱");
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainNavigation()),
         );
+      } else {
+        final error = jsonDecode(response.body);
+        _showError(error['message'] ?? "Login failed");
       }
-    });
+    } catch (e) {
+      _showError("Connection error. Is Laravel running?");
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
-  // Fungsi untuk validasi sign up
-  void _handleSignUp() {
+  // --- FUNGSI REGISTER (API) ---
+  Future<void> _handleSignUp() async {
     String name = nameController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _showError("Please fill all fields");
       return;
     }
 
-    if (name.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Name must be at least 3 characters"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+    setState(() => isLoading = true);
 
-    if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid email"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/api/register'),
+        headers: {'Accept': 'application/json'},
+        body: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': password, // Biasanya Laravel butuh ini
+        },
       );
-      return;
-    }
 
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Password must be at least 6 characters"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    // Jika berhasil registrasi
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Account created successfully! 🎉"),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-    
-    // Setelah registrasi berhasil, pindah ke halaman login
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        _showSuccess("Account created successfully! 🎉");
         setState(() {
           isSignIn = true;
-          // Clear form
           nameController.clear();
           emailController.clear();
           passwordController.clear();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please login with your new account"),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 2),
-          ),
-        );
+      } else {
+        final error = jsonDecode(response.body);
+        _showError(error['message'] ?? "Registration failed");
       }
-    });
+    } catch (e) {
+      _showError("Connection error. Check your server.");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
   }
 
   @override
@@ -168,13 +128,6 @@ class _AuthScreenState extends State<AuthScreen> {
       backgroundColor: const Color(0xFF4CAF50),
       body: Stack(
         children: [
-          // Background Hijau di bagian atas
-          const SizedBox(
-            height: 300,
-            width: double.infinity,
-          ),
-          
-          // Card Putih Utama
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -191,7 +144,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                 child: Column(
                   children: [
-                    // Judul Dinamis
                     Text(
                       isSignIn ? "Welcome Back!" : "Create Account",
                       style: const TextStyle(
@@ -202,7 +154,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 25),
 
-                    // Custom Toggle Button (Sign in / Sign up)
+                    // Toggle
                     Container(
                       height: 55,
                       padding: const EdgeInsets.all(5),
@@ -219,7 +171,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 35),
 
-                    // Input Fields
+                    // Input
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: Column(
@@ -248,33 +200,12 @@ class _AuthScreenState extends State<AuthScreen> {
                         ],
                       ),
                     ),
-
-                    // Forgot Password (hanya muncul saat Sign In)
-                    if (isSignIn)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Reset password link sent to your email"),
-                                backgroundColor: Colors.blue,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            "Forgot Password?",
-                            style: TextStyle(color: Colors.grey, fontSize: 13),
-                          ),
-                        ),
-                      ),
                     
                     const SizedBox(height: 25),
 
                     // Main Action Button
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: isLoading ? null : () {
                         if (isSignIn) {
                           _handleSignIn();
                         } else {
@@ -287,45 +218,14 @@ class _AuthScreenState extends State<AuthScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        elevation: 4,
-                        shadowColor: Colors.black.withValues(alpha: 0.5),
                       ),
-                      child: Text(
-                        isSignIn ? "Sign In" : "Sign Up",
-                        style: const TextStyle(
-                          color: Colors.white, 
-                          fontSize: 18, 
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // Teks tambahan untuk Sign Up
-                    if (!isSignIn)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                            children: [
-                              TextSpan(text: "By signing up, you agree to our "),
-                              TextSpan(
-                                text: "Terms of Service",
-                                style: TextStyle(color: Color(0xFF4CAF50)),
-                              ),
-                              TextSpan(text: " and "),
-                              TextSpan(
-                                text: "Privacy Policy",
-                                style: TextStyle(color: Color(0xFF4CAF50)),
-                              ),
-                            ],
+                      child: isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            isSignIn ? "Sign In" : "Sign Up",
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ),
-                    
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -338,7 +238,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   // --- WIDGET HELPERS ---
-
   Widget _buildToggleButton(String text, bool isActive) {
     return Expanded(
       child: GestureDetector(
@@ -347,9 +246,6 @@ class _AuthScreenState extends State<AuthScreen> {
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(25),
-            boxShadow: isActive 
-                ? [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))] 
-                : [],
           ),
           alignment: Alignment.center,
           child: Text(
@@ -364,19 +260,13 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildTextField(
-    IconData icon, 
-    String hint, {
-    bool isPassword = false,
-    required TextEditingController controller,
-  }) {
+  Widget _buildTextField(IconData icon, String hint, {bool isPassword = false, required TextEditingController controller}) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: const Color(0xFF0D3B31)),
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(25),
           borderSide: const BorderSide(color: Color(0xFF0D3B31), width: 1.2),
