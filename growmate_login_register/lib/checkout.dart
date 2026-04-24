@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';  // Import ini akan digunakan
+import 'package:qr_flutter/qr_flutter.dart';
 
 class Checkout extends StatefulWidget {
   final int price;
@@ -14,9 +14,176 @@ class _CheckoutState extends State<Checkout> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
+  // Method untuk menampilkan popup order detail
+  void _showOrderDetailPopup(BuildContext context, String customerName, String address, String shipping, int total) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User harus tekan tombol Close
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha:0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF4CAF50),
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Order Detail",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF234536),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Order Info Container
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F6F4),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: const Color(0xFFD2EFDA)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow("Customer:", customerName),
+                      const SizedBox(height: 12),
+                      _buildDetailRow("Address:", address),
+                      const SizedBox(height: 12),
+                      _buildDetailRow("Shipping Method:", shipping),
+                      const SizedBox(height: 12),
+                      _buildDetailRow("Order Date:", _getCurrentDate()),
+                      const SizedBox(height: 12),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      _buildDetailRow("Items:", "Spider Plant - Rp${widget.price}"),
+                      const SizedBox(height: 12),
+                      _buildTotalRow("Total:", "Rp$total"),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Close Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.popUntil(context, (route) => route.isFirst);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      "Close",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Helper untuk membuat row detail
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF234536),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF555555),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper untuk membuat row total
+  Widget _buildTotalRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF234536),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF4CAF50),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Mendapatkan tanggal saat ini
+  String _getCurrentDate() {
+    final DateTime now = DateTime.now();
+    return "${now.day}/${now.month}/${now.year}";
+  }
+
   @override
   Widget build(BuildContext context) {
-    int shipping = 500;
+    int shipping = shippingMethod == "Instant" ? 500 : 
+                   shippingMethod == "Same Day" ? 400 :
+                   shippingMethod == "Regular" ? 300 : 200;
     int total = widget.price + shipping;
 
     return Scaffold(
@@ -52,7 +219,7 @@ class _CheckoutState extends State<Checkout> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Order Summary (sama seperti sebelumnya)
+            // Order Summary
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -81,6 +248,14 @@ class _CheckoutState extends State<Checkout> {
                           width: 70,
                           height: 70,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 70,
+                              height: 70,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image_not_supported),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -138,7 +313,7 @@ class _CheckoutState extends State<Checkout> {
             ),
             const SizedBox(height: 20),
             
-            // Shipping Info (sama seperti sebelumnya)
+            // Shipping Info
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -154,6 +329,7 @@ class _CheckoutState extends State<Checkout> {
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
+                      hintText: "Enter your name",
                       filled: true,
                       fillColor: const Color(0xFFF1F8F4),
                       border: OutlineInputBorder(
@@ -168,6 +344,7 @@ class _CheckoutState extends State<Checkout> {
                   TextField(
                     controller: addressController,
                     decoration: InputDecoration(
+                      hintText: "Enter your address",
                       filled: true,
                       fillColor: const Color(0xFFF1F8F4),
                       border: OutlineInputBorder(
@@ -193,19 +370,19 @@ class _CheckoutState extends State<Checkout> {
                         items: const [
                           DropdownMenuItem(
                             value: "Instant",
-                            child: Text("Instant (1-2 Hours)"),
+                            child: Text("Instant (1-2 Hours) - Rp500"),
                           ),
                           DropdownMenuItem(
                             value: "Same Day",
-                            child: Text("Same Day Delivery"),
+                            child: Text("Same Day Delivery - Rp400"),
                           ),
                           DropdownMenuItem(
                             value: "Regular",
-                            child: Text("Regular (2-3 Days)"),
+                            child: Text("Regular (2-3 Days) - Rp300"),
                           ),
                           DropdownMenuItem(
                             value: "Economy",
-                            child: Text("Economy (4-7 Days)"),
+                            child: Text("Economy (4-7 Days) - Rp200"),
                           ),
                         ],
                         onChanged: (value) {
@@ -221,7 +398,7 @@ class _CheckoutState extends State<Checkout> {
             ),
             const SizedBox(height: 20),
             
-            // QR PAYMENT - INI YANG MENGGUNAKAN QR_CODE
+            // QR PAYMENT
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -241,9 +418,8 @@ class _CheckoutState extends State<Checkout> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // ✅ INI YANG MENGGUNAKAN QR_FUTTER
                   QrImageView(
-                    data: "PAYMENT-${widget.price}-${DateTime.now()}",
+                    data: "PAYMENT-${widget.price}-${DateTime.now().millisecondsSinceEpoch}",
                     size: 200,
                     backgroundColor: Colors.white,
                   ),
@@ -286,14 +462,34 @@ class _CheckoutState extends State<Checkout> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Handle confirm payment
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Payment confirmed! Thank you."),
-                                backgroundColor: Colors.green,
-                              ),
+                            // Validasi input
+                            if (nameController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Please enter your name"),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            if (addressController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Please enter your address"),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            
+                            // Tampilkan popup order detail
+                            _showOrderDetailPopup(
+                              context,
+                              nameController.text,
+                              addressController.text,
+                              shippingMethod,
+                              total,
                             );
-                            Navigator.popUntil(context, (route) => route.isFirst);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4CAF50),
