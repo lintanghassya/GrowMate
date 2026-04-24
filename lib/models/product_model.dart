@@ -16,7 +16,6 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      // KUNCINYA DI SINI: Harus 'nama_product' sesuai isi JSON kamu
       name: json['nama_product'] ?? 'No Name',
       price: json['price'] is int
           ? json['price']

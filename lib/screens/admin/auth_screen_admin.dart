@@ -18,7 +18,6 @@ class _AuthScreenState extends State<AuthScreen> {
     String password = _passwordController.text.trim();
 
     if (email == "admin@growmate.com" && password == "admin123") {
-      // Jika benar, masuk ke dashboard
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else if (email.isEmpty || password.isEmpty) {
       _showErrorSnackBar("Email dan Password tidak boleh kosong!");
@@ -70,29 +69,24 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 25),
-
                     _buildToggleSwitch(),
-
                     const SizedBox(height: 30),
                     if (!isSignIn) ...[
                       _buildInputField(Icons.person_outline, "Name"),
                       const SizedBox(height: 15),
                     ],
-
                     _buildInputField(
                       Icons.email_outlined,
                       "Email",
                       controller: _emailController,
                     ),
                     const SizedBox(height: 15),
-
                     _buildInputField(
                       Icons.lock_outline,
                       "Password",
                       isPass: true,
                       controller: _passwordController,
                     ),
-
                     if (isSignIn)
                       Align(
                         alignment: Alignment.centerRight,
@@ -104,9 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                       ),
-
                     const SizedBox(height: 25),
-
                     ElevatedButton(
                       onPressed: isSignIn ? _handleLogin : () {},
                       style: ElevatedButton.styleFrom(
@@ -126,11 +118,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 30),
-                    _buildSocialSeparator(),
-                    const SizedBox(height: 20),
-                    _buildSocialButtons(),
                   ],
                 ),
               ),
@@ -160,7 +147,9 @@ class _AuthScreenState extends State<AuthScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(21),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 4),
+                ],
               ),
             ),
           ),
@@ -224,42 +213,4 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-
-  Widget _buildSocialSeparator() {
-    return const Row(
-      children: [
-        Expanded(child: Divider()),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text("or", style: TextStyle(color: Colors.grey)),
-        ),
-        Expanded(child: Divider()),
-      ],
-    );
-  }
-
-  Widget _buildSocialButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _socialTile('images/facebook.png'),
-        const SizedBox(width: 50),
-        _socialTile('images/google.png'),
-      ],
-    );
-  }
-
-  Widget _socialTile(String img) => Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Image.asset(
-      img,
-      height: 35,
-      width: 35,
-      errorBuilder: (c, e, s) => const Icon(Icons.error),
-    ),
-  );
 }
